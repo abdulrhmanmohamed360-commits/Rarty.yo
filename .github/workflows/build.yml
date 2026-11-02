@@ -1,5 +1,5 @@
 
-name: EduForge Frontend Build
+name: EduForge Auto Install and Build
 
 on:
   push:
@@ -13,49 +13,58 @@ permissions:
 
 jobs:
   build:
-    name: Install Dependencies and Build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Download Project Files
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
-      # Install missing project dependencies automatically
-      - name: Install Dependencies
+      - name: Check Project Files
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci --include=dev
-          else
-            npm install --include=dev
-          fi
+          test -f package.json || {
+            echo "ERROR: package.json is missing"
+            exit 1
+          }
 
-      # Check required project files
-      - name: Validate Project
+          test -f index.html || {
+            echo "ERROR: index.html is missing"
+            exit 1
+          }
+
+          test -d src || {
+            echo "ERROR: src folder is missing"
+            exit 1
+          }
+
+      - name: Install All Declared Dependencies
         run: |
-          test -f package.json
-          test -f index.html
-          test -d src
-          node -e "const p=require('./package.json'); if (!p.scripts?.build) process.exit(1)"
+          npm install --include=dev --no-audit --no-fund
 
-      # TypeScript validation
+      - name: Repair Missing Build Tools
+        run: |
+          npm install --save-dev \
+            typescript \
+            vite \
+            @vitejs/plugin-react \
+            --no-audit --no-fund
+
       - name: TypeScript Check
-        run: npx --no-install tsc -b
+        run: npx tsc -b
 
-      # Production build
       - name: Build Project
         run: npm run build
 
-      # Save build output
-      - name: Upload Build Artifact
+      - name: Upload Build Files
         uses: actions/upload-artifact@v4
         with:
-          name: eduforge-frontend-build
+          name: eduforge-production-build
           path: dist/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
           
