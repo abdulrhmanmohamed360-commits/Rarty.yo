@@ -1,3 +1,4 @@
+
 name: EduForge Frontend Build
 
 on:
@@ -12,7 +13,7 @@ permissions:
 
 jobs:
   build:
-    name: Install, Typecheck and Build
+    name: Install Dependencies and Build
     runs-on: ubuntu-latest
 
     steps:
@@ -23,21 +24,38 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Install dependencies
-        run: npm install
+      # Install missing project dependencies automatically
+      - name: Install Dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --include=dev
+          else
+            npm install --include=dev
+          fi
 
-      - name: TypeScript check
-        run: npx tsc -b
+      # Check required project files
+      - name: Validate Project
+        run: |
+          test -f package.json
+          test -f index.html
+          test -d src
+          node -e "const p=require('./package.json'); if (!p.scripts?.build) process.exit(1)"
 
-      - name: Build frontend
+      # TypeScript validation
+      - name: TypeScript Check
+        run: npx --no-install tsc -b
+
+      # Production build
+      - name: Build Project
         run: npm run build
 
-      - name: Upload build artifacts
+      # Save build output
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: eduforge-frontend-build
           path: dist/
           if-no-files-found: error
           retention-days: 7
+          
