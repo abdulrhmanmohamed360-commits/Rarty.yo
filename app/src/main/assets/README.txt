@@ -1,1 +1,0 @@
-No trained detector model is bundled. Add a compatible TensorFlow Lite ObjectDetector model named cup_detector.tflite here after training/exporting it with TFLite Model Metadata and a label named "cup". See ../../../../TRAINING.md.
